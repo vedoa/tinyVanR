@@ -2,7 +2,8 @@
 frontend_ui <- vtag(
   "div",
   vtag("h3", "R-Defined UI"),
-  vtag("div", 
+  vtag(
+    "div",
     "Adjust: ",
     vtag("input", id = "slider_1", type = "range", min = 0, max = 100)
   ),
@@ -56,7 +57,11 @@ app <- tinyvanr_app(
   title = "My Dynamic R App",
   head = list(
     after = list(
-      vtag("link", rel = "stylesheet", href = "https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"),
+      vtag(
+        "link",
+        rel = "stylesheet",
+        href = "https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
+      ),
       vtag("link", rel = "stylesheet", href = "custom.css")
     )
   )

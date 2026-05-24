@@ -57,7 +57,11 @@ as_html <- function(x) {
   if (length(x$props) > 0) {
     props_attrs <- paste(
       names(x$props),
-      vapply(x$props, function(p) sprintf('"%s"', p), character(1)),
+      vapply(
+        x$props,
+        function(p) sprintf('"%s"', as.character(p)[1]),
+        character(1)
+      ),
       sep = "=",
       collapse = " "
     )
@@ -92,11 +96,15 @@ serialize_ui <- function(x) {
   }
   if (is.list(x) && !is.null(names(x))) {
     # Quote keys to avoid issues with JS reserved words like 'class' or 'for'
-    kv <- vapply(names(x), function(n) {
-      # Handle R keywords that might be escaped with backticks
-      clean_n <- gsub("`", "", n)
-      paste0("'", clean_n, "':", serialize_ui(x[[n]]))
-    }, character(1))
+    kv <- vapply(
+      names(x),
+      function(n) {
+        # Handle R keywords that might be escaped with backticks
+        clean_n <- gsub("`", "", n)
+        paste0("'", clean_n, "':", serialize_ui(x[[n]]))
+      },
+      character(1)
+    )
     return(paste0("{", paste(kv, collapse = ","), "}"))
   }
   if (is.list(x)) {
@@ -129,8 +137,8 @@ tinyvanr_app <- function(
   body = list(before = list(), after = list())
 ) {
   # Normalize head inputs
-  if (!is.list(head)) {
-    head <- list()
+  if (!is.list(head) || inherits(head, "tiny_ui")) {
+    head <- list(after = head)
   }
   if (is.null(head$before)) {
     head$before <- list()
@@ -138,16 +146,16 @@ tinyvanr_app <- function(
   if (is.null(head$after)) {
     head$after <- list()
   }
-  if (!is.list(head$before)) {
+  if (!is.list(head$before) || inherits(head$before, "tiny_ui")) {
     head$before <- list(head$before)
   }
-  if (!is.list(head$after)) {
+  if (!is.list(head$after) || inherits(head$after, "tiny_ui")) {
     head$after <- list(head$after)
   }
 
   # Normalize body inputs
-  if (!is.list(body)) {
-    body <- list()
+  if (!is.list(body) || inherits(body, "tiny_ui")) {
+    body <- list(before = body)
   }
   if (is.null(body$before)) {
     body$before <- list()
@@ -155,10 +163,10 @@ tinyvanr_app <- function(
   if (is.null(body$after)) {
     body$after <- list()
   }
-  if (!is.list(body$before)) {
+  if (!is.list(body$before) || inherits(body$before, "tiny_ui")) {
     body$before <- list(body$before)
   }
-  if (!is.list(body$after)) {
+  if (!is.list(body$after) || inherits(body$after, "tiny_ui")) {
     body$after <- list(body$after)
   }
 

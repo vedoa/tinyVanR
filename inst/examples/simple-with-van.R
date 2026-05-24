@@ -55,7 +55,10 @@ app <- tinyvanr_app(
   title = "My Dynamic R App (van helper)",
   head = list(
     after = list(
-      van$link(rel = "stylesheet", href = "https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"),
+      van$link(
+        rel = "stylesheet",
+        href = "https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
+      ),
       van$link(rel = "stylesheet", href = "custom.css")
     )
   )

@@ -71,13 +71,16 @@ run_app <- function(
     })
 
     # Robust path resolution for static assets
-    tinyVanR_dir <- normalizePath(system.file("tinyVanR", package = "tinyVanR"), mustWork = FALSE)
+    tinyVanR_dir <- normalizePath(
+      system.file("tinyVanR", package = "tinyVanR"),
+      mustWork = FALSE
+    )
     if (tinyVanR_dir == "") {
       if (dir.exists("inst/tinyVanR")) {
         tinyVanR_dir <- "inst/tinyVanR"
       }
     }
-    
+
     # Inject framework static assets
     all_static <- c(
       static,

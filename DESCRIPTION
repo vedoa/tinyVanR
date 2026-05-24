@@ -5,7 +5,7 @@ Version: 0.0.1
 Authors@R: 
     person("Vedo", "Alagic", email = "vedo.alagic@outlook.com", role = c("aut", "cre"))
 Description: An R interface to the CivetWeb embedded C web server designed for 
-    building lightweight, reactive web applications. It facilitates high-performance 
+    building lightweight, reactive web applications. It facilitates
     communication between R and frontend frameworks like VanJS, supporting 
     static file serving and dynamic JSON request handling.
 License: MIT + file LICENSE
@@ -20,5 +20,6 @@ Suggests:
     testthat (>= 3.0.0),
     callr,
     pkgload,
-    devtools
+    devtools,
+    mockery
 Config/testthat/edition: 3
