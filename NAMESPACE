@@ -3,4 +3,5 @@
 export(as_html)
 export(run_app)
 export(tinyvanr_app)
+export(van)
 export(vtag)

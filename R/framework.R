@@ -19,6 +19,8 @@ vtag <- function(tag, ..., id = NULL) {
     children <- dots
   } else {
     props <- dots[nms != ""]
+    # Filter out NULL properties (common when using dedicated tag helpers)
+    props <- props[!vapply(props, is.null, logical(1))]
     children <- unname(dots[nms == ""])
   }
 
