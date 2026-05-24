@@ -95,7 +95,7 @@ const renderNode = (node) => {
     if (Array.isArray(node)) return node.map(renderNode);
 
     const tagFunc = van.tags[node.tag];
-    let children = node.children ? renderNode(node.children) : [];
+    let children = node.children ? renderNode(node.children) : []; // Ensure children is an array
     
     // Ensure children is always an array for the spread operator
     if (!Array.isArray(children)) {

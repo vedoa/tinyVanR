@@ -1,7 +1,7 @@
 source("../../R/framework.R")
 source("../../R/app.R")
 
-# Define UI entirely in R
+# Define UI entirely in R using the vtag DSL
 ui <- vtag(
   "div",
   vtag("h3", "R-Defined UI"),
@@ -12,7 +12,10 @@ ui <- vtag(
   vtag("div", id = "val_display"),
   vtag("hr"),
   vtag("button", id = "btn_toggle", "Toggle Lock"),
-  vtag("div", id = "status_msg")
+  vtag("div", id = "status_msg"),
+  vtag("hr"),
+  vtag("p", "This is a custom paragraph added to the UI."),
+  vtag("a", href = "https://www.r-project.org/", "Visit R-Project")
 )
 
 #' A simple server-side application logic
@@ -28,11 +31,6 @@ simple_server <- function(input, output, on) {
   # Sync slider value
   on("slider_1", function(val) {
     output$set("val_display", paste("Value is:", val))
-  })
-
-  # Sync select value
-  on("sel_1", function(val) {
-    output$set("sel_out", paste("You chose:", val))
   })
 
   # Toggle properties of other elements
@@ -55,5 +53,10 @@ simple_server <- function(input, output, on) {
 }
 
 # Initialize and launch
-app <- tiny_app(ui = ui, server_func = simple_server)
-run_app(app, port = 8080)
+app <- tiny_app(
+  ui = ui,
+  server_func = simple_server,
+  title = "My Dynamic R App",
+  css = list("https://cdn.jsdelivr.net/npm/water.css@2/out/water.css", "custom.css") # Example CSS
+)
+run_app(app, port = 8080, timeout_ms = 20L) # Pass additional args to serve

@@ -19,6 +19,35 @@ vtag <- function(tag, ..., id = NULL) {
   )
 }
 
+#' Convert tiny_ui to static HTML string
+#' @export
+as_html <- function(x) {
+  if (is.null(x)) {
+    return("")
+  }
+  if (is.character(x)) {
+    return(x)
+  }
+  if (!inherits(x, "tiny_ui")) {
+    return(as.character(x))
+  } # Fallback for non-vtag objects
+
+  id_attr <- if (!is.null(x$id)) sprintf(' id="%s"', x$id) else ""
+  props_attrs <- ""
+  if (length(x$props) > 0) {
+    props_attrs <- paste(
+      names(x$props),
+      sapply(x$props, function(p) sprintf('"%s"', p)),
+      sep = "=",
+      collapse = " "
+    )
+    props_attrs <- paste0(" ", props_attrs)
+  }
+
+  inner_html <- paste(sapply(x$children, as_html), collapse = "")
+  sprintf("<%s%s%s>%s</%s>", x$tag, id_attr, props_attrs, inner_html, x$tag)
+}
+
 #' Recursive Base R to JS Object Serializer (Zero Dependency)
 serialize_ui <- function(x) {
   if (is.null(x)) {
@@ -45,8 +74,31 @@ serialize_ui <- function(x) {
 
 #' Constructor for tinyVanR Application
 #' @export
-tiny_app <- function(ui, server_func) {
-  structure(list(ui = ui, server = server_func), class = "tiny_app")
+tiny_app <- function(
+  ui,
+  server_func,
+  title = "tinyVanR",
+  css = list(),
+  head = list()
+) {
+  # Ensure css and head are always lists of vtag objects or strings
+  if (!is.list(css)) {
+    css <- list(css)
+  }
+  if (!is.list(head)) {
+    head <- list(head)
+  }
+
+  structure(
+    list(
+      ui = ui,
+      server = server_func,
+      title = title,
+      css = css,
+      head = head
+    ),
+    class = "tiny_app"
+  )
 }
 
 #' Initialize a new session environment
