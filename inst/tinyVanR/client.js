@@ -26,6 +26,11 @@ ws.onmessage = (e) => {
     } else if (cmd === "OUT") {
         const [_, id, type, val] = parts;
         const state = getOutputState(id);
+        
+        if (!state) {
+            console.warn(`Attempted to update unknown element ID: ${id}`);
+            return;
+        }
 
         // Handle Boolean strings from R
         let parsedVal = val;
@@ -68,16 +73,21 @@ const Bind = (id, tagName, tagFunc, props = {}, ...children) => {
         [eventType]: handler
     };
 
-    // Only bind attributes that are relevant to this element to avoid DOM pollution
-    const reactiveAttrs = ["disabled", "style", "class", "min", "max", "value", "checked", "placeholder"];
-    const isInteractive = ["input", "select", "textarea", "button"].includes(tagName);
+    // Selective binding: Only bind attributes that are relevant to the tag or present in props.
+    // This avoids polluting DOM elements with irrelevant "undefined" attributes.
+    const reactiveAttrs = ["disabled", "style", "class", "min", "max", "value", "checked", "placeholder", "src", "href"];
+    const isMedia = ["img", "iframe", "video", "audio", "source"].includes(tagName);
+    const isInput = ["input", "select", "textarea", "button", "option"].includes(tagName);
+    const isLink = ["a", "area", "link"].includes(tagName);
 
     reactiveAttrs.forEach(attr => {
-        const hasInitial = props[attr] !== undefined;
+        const isInitial = props[attr] !== undefined;
         const isGlobal = ["style", "class"].includes(attr);
-        const isState = isInteractive && ["disabled", "value", "checked"].includes(attr);
+        const isRelevant = (isMedia && attr === "src") || 
+                           (isInput && ["value", "checked", "disabled", "min", "max", "placeholder"].includes(attr)) ||
+                           (isLink && ["href", "target"].includes(attr));
 
-        if (hasInitial || isGlobal || isState) {
+        if (isInitial || isGlobal || isRelevant) {
             extendedProps[attr] = () => {
                 const val = state.val.props[attr] ?? props[attr];
                 // Returning undefined tells VanJS to omit the attribute entirely

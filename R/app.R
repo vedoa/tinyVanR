@@ -66,12 +66,12 @@ run_app <- function(
       list(
         status = 200L,
         headers = list("Content-Type" = "text/html"),
-        body = as_html(html_doc)
+        body = paste0("<!DOCTYPE html>", as_html(html_doc))
       )
     })
 
     # Robust path resolution for static assets
-    tinyVanR_dir <- system.file("tinyVanR", package = "tinyVanR")
+    tinyVanR_dir <- normalizePath(system.file("tinyVanR", package = "tinyVanR"), mustWork = FALSE)
     if (tinyVanR_dir == "") {
       if (dir.exists("inst/tinyVanR")) {
         tinyVanR_dir <- "inst/tinyVanR"

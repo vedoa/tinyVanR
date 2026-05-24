@@ -1,6 +1,3 @@
-source("../../R/framework.R")
-source("../../R/app.R")
-
 # Define UI entirely in R using the vtag DSL
 frontend_ui <- vtag(
   "div",

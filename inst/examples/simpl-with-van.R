@@ -1,7 +1,3 @@
-source("../../R/framework.R")
-source("../../R/app.R")
-source("../../R/tags.R")
-
 # Define UI entirely in R using the van helper object
 frontend_ui <- van$div(
   van$h3("R-Defined UI (with van helper)"),

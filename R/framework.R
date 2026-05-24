@@ -91,11 +91,12 @@ serialize_ui <- function(x) {
     return(paste0("'", gsub("'", "\\'", x, fixed = TRUE), "'"))
   }
   if (is.list(x) && !is.null(names(x))) {
-    kv <- vapply(
-      names(x),
-      function(n) paste0(n, ":", serialize_ui(x[[n]])),
-      character(1)
-    )
+    # Quote keys to avoid issues with JS reserved words like 'class' or 'for'
+    kv <- vapply(names(x), function(n) {
+      # Handle R keywords that might be escaped with backticks
+      clean_n <- gsub("`", "", n)
+      paste0("'", clean_n, "':", serialize_ui(x[[n]]))
+    }, character(1))
     return(paste0("{", paste(kv, collapse = ","), "}"))
   }
   if (is.list(x)) {
