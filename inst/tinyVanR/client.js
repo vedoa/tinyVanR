@@ -29,8 +29,9 @@ ws.onmessage = (e) => {
 
         // Handle Boolean strings from R
         let parsedVal = val;
-        if (val === "TRUE") parsedVal = true;
-        if (val === "FALSE") parsedVal = false;
+        const upperVal = String(val).toUpperCase();
+        if (upperVal === "TRUE" || upperVal === "T") parsedVal = true;
+        if (upperVal === "FALSE" || upperVal === "F") parsedVal = false;
 
         if (type === "text") state.val = { ...state.val, text: parsedVal };
         else if (type.startsWith("prop:")) {
@@ -67,13 +68,22 @@ const Bind = (id, tagName, tagFunc, props = {}, ...children) => {
         [eventType]: handler
     };
 
-    // Reactive properties from server - only bind standard attributes
-    const reactiveAttrs = ["disabled", "style", "class", "min", "max", "value", "checked", "type", "placeholder"];
+    // Only bind attributes that are relevant to this element to avoid DOM pollution
+    const reactiveAttrs = ["disabled", "style", "class", "min", "max", "value", "checked", "placeholder"];
+    const isInteractive = ["input", "select", "textarea", "button"].includes(tagName);
+
     reactiveAttrs.forEach(attr => {
-        extendedProps[attr] = () => {
-            const val = state.val.props[attr] ?? props[attr];
-            return val === undefined ? undefined : val;
-        };
+        const hasInitial = props[attr] !== undefined;
+        const isGlobal = ["style", "class"].includes(attr);
+        const isState = isInteractive && ["disabled", "value", "checked"].includes(attr);
+
+        if (hasInitial || isGlobal || isState) {
+            extendedProps[attr] = () => {
+                const val = state.val.props[attr] ?? props[attr];
+                // Returning undefined tells VanJS to omit the attribute entirely
+                return (val === undefined || val === null) ? undefined : val;
+            };
+        }
     });
 
     return tagFunc(extendedProps, children, van.derive(() => state.val.text || ""));
