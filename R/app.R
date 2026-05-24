@@ -6,14 +6,17 @@
 run_app <- function(app, host = "127.0.0.1", port = 8080) {
   sessions <- new.env(parent = emptyenv())
 
-  # Path logic for inst/tinyVanR
+  # Robust path resolution for static assets
   tinyVanR_dir <- system.file("tinyVanR", package = "tinyVanR")
-  if (tinyVanR_dir == "" && dir.exists("inst/tinyVanR")) tinyVanR_dir <- "inst/tinyVanR"
+  if (tinyVanR_dir == "") {
+    if (dir.exists("inst/tinyVanR")) tinyVanR_dir <- "inst/tinyVanR"
+    else if (dir.exists("www")) tinyVanR_dir <- "www"
+  }
 
   # Register Global WebSocket Handlers
   civetwebR::on_ws("open", function(req) {
     id <- as.character(req$id)
-    sessions[[id]] <- create_session(id, app$server)
+    sessions[[id]] <- create_session(id, app$ui, app$server)
     message(sprintf("Session opened: %s", id))
   })
 
