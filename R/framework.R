@@ -1,4 +1,13 @@
-#' UI DSL Helpers
+#' Create a Virtual UI Element
+#'
+#' Constructs an HTML tag representation that can be rendered to static HTML
+#' via \code{as_html} or serialized for dynamic Van.js rendering.
+#'
+#' @param tag Character. The HTML tag name (e.g., "div", "input").
+#' @param ... Unnamed arguments are treated as children; named arguments are attributes.
+#' @param id Character or NULL. Optional ID used for reactive server-side binding.
+#'
+#' @return An object of class \code{tiny_ui}.
 #' @export
 vtag <- function(tag, ..., id = NULL) {
   dots <- list(...)
@@ -19,7 +28,13 @@ vtag <- function(tag, ..., id = NULL) {
   )
 }
 
-#' Convert tiny_ui to static HTML string
+#' Convert tiny_ui Objects to HTML Strings
+#'
+#' Recursively renders a \code{tiny_ui} tree or a list of elements into a valid HTML character string.
+#'
+#' @param x A \code{tiny_ui} object, a list of elements, or a character string.
+#'
+#' @return A character string containing the HTML representation.
 #' @export
 as_html <- function(x) {
   if (is.null(x)) {
@@ -27,6 +42,9 @@ as_html <- function(x) {
   }
   if (is.character(x)) {
     return(x)
+  }
+  if (is.list(x) && !inherits(x, "tiny_ui")) {
+    return(paste(vapply(x, as_html, character(1)), collapse = ""))
   }
   if (!inherits(x, "tiny_ui")) {
     return(as.character(x))
@@ -37,18 +55,26 @@ as_html <- function(x) {
   if (length(x$props) > 0) {
     props_attrs <- paste(
       names(x$props),
-      sapply(x$props, function(p) sprintf('"%s"', p)),
+      vapply(x$props, function(p) sprintf('"%s"', p), character(1)),
       sep = "=",
       collapse = " "
     )
     props_attrs <- paste0(" ", props_attrs)
   }
 
-  inner_html <- paste(sapply(x$children, as_html), collapse = "")
+  inner_html <- paste(vapply(x$children, as_html, character(1)), collapse = "")
   sprintf("<%s%s%s>%s</%s>", x$tag, id_attr, props_attrs, inner_html, x$tag)
 }
 
-#' Recursive Base R to JS Object Serializer (Zero Dependency)
+#' Serialize R Objects to JavaScript Literals
+#'
+#' Converts R lists and vectors into a string format compatible with JavaScript object literals.
+#' This is used to transmit the initial UI structure over WebSockets.
+#'
+#' @param x The R object to serialize.
+#'
+#' @return A character string representing the JS object.
+#' @keywords internal
 serialize_ui <- function(x) {
   if (is.null(x)) {
     return("null")
@@ -63,46 +89,99 @@ serialize_ui <- function(x) {
     return(paste0("'", gsub("'", "\\'", x, fixed = TRUE), "'"))
   }
   if (is.list(x) && !is.null(names(x))) {
-    kv <- sapply(names(x), function(n) paste0(n, ":", serialize_ui(x[[n]])))
+    kv <- vapply(
+      names(x),
+      function(n) paste0(n, ":", serialize_ui(x[[n]])),
+      character(1)
+    )
     return(paste0("{", paste(kv, collapse = ","), "}"))
   }
   if (is.list(x)) {
-    return(paste0("[", paste(sapply(x, serialize_ui), collapse = ","), "]"))
+    return(paste0(
+      "[",
+      paste(vapply(x, serialize_ui, character(1)), collapse = ","),
+      "]"
+    ))
   }
   return(paste0("'", as.character(x), "'"))
 }
 
-#' Constructor for tinyVanR Application
+#' Constructor for a tinyVanR Application
+#'
+#' Bundles the frontend definition and backend logic into a single app object.
+#'
+#' @param frontend A \code{tiny_ui} object defining the initial layout.
+#' @param backend A function(input, output, on) containing the reactive server logic.
+#' @param title Character. The title displayed in the browser tab.
+#' @param head List with \code{before} and \code{after} slots for the HTML head section.
+#' @param body List with \code{before} and \code{after} slots for the HTML body section.
+#'
+#' @return An object of class \code{tinyvanr_app}.
 #' @export
-tiny_app <- function(
-  ui,
-  server_func,
+tinyvanr_app <- function(
+  frontend,
+  backend,
   title = "tinyVanR",
-  css = list(),
-  head = list()
+  head = list(before = list(), after = list()),
+  body = list(before = list(), after = list())
 ) {
-  # Ensure css and head are always lists of vtag objects or strings
-  if (!is.list(css)) {
-    css <- list(css)
-  }
+  # Normalize head inputs
   if (!is.list(head)) {
-    head <- list(head)
+    head <- list()
+  }
+  if (is.null(head$before)) {
+    head$before <- list()
+  }
+  if (is.null(head$after)) {
+    head$after <- list()
+  }
+  if (!is.list(head$before)) {
+    head$before <- list(head$before)
+  }
+  if (!is.list(head$after)) {
+    head$after <- list(head$after)
+  }
+
+  # Normalize body inputs
+  if (!is.list(body)) {
+    body <- list()
+  }
+  if (is.null(body$before)) {
+    body$before <- list()
+  }
+  if (is.null(body$after)) {
+    body$after <- list()
+  }
+  if (!is.list(body$before)) {
+    body$before <- list(body$before)
+  }
+  if (!is.list(body$after)) {
+    body$after <- list(body$after)
   }
 
   structure(
     list(
-      ui = ui,
-      server = server_func,
+      frontend = frontend,
+      backend = backend,
       title = title,
-      css = css,
-      head = head
+      head = head,
+      body = body
     ),
-    class = "tiny_app"
+    class = "tinyvanr_app"
   )
 }
 
-#' Initialize a new session environment
-create_session <- function(client_id, app_ui, app_server) {
+#' Initialize a New Client Session
+#'
+#' Creates an isolated environment for a unique WebSocket connection, providing the input/output API.
+#'
+#' @param client_id Character. The unique connection ID from the web server.
+#' @param app_frontend The \code{tiny_ui} tree for initial rendering.
+#' @param app_backend The backend function provided in \code{tinyvanr_app}.
+#'
+#' @return An environment containing session state and reactive handlers.
+#' @keywords internal
+create_session <- function(client_id, app_frontend, app_backend) {
   sess <- new.env(parent = emptyenv())
   sess$id <- client_id
   sess$input_state <- new.env(parent = emptyenv())
@@ -136,16 +215,23 @@ create_session <- function(client_id, app_ui, app_server) {
   }
 
   # Send the initial UI Layout
-  ui_msg <- paste("UI", serialize_ui(app_ui), sep = "\t")
+  ui_msg <- paste("UI", serialize_ui(app_frontend), sep = "\t")
   civetwebR::ws_send(as.integer(sess$id), ui_msg)
 
   # Run user server code to register handlers and perform initial updates
-  app_server(input_api, output_api, on_api)
+  app_backend(input_api, output_api, on_api)
 
   sess
 }
 
-#' Route incoming WebSocket text messages
+#' Route and Process Incoming WebSocket Messages
+#'
+#' Parses the tab-separated protocol messages and executes corresponding backend handlers.
+#'
+#' @param session The session environment created by \code{create_session}.
+#' @param raw_msg Raw vector. The raw message bytes from the WebSocket.
+#'
+#' @keywords internal
 dispatch_ws_message <- function(session, raw_msg) {
   msg_str <- rawToChar(raw_msg)
   parts <- strsplit(msg_str, "\t")[[1]]

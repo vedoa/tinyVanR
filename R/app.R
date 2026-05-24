@@ -1,14 +1,19 @@
-#' Run a tinyVanR App
-#' @param app A tiny_app object
-#' @param host Host string
-#' @param port Port integer
-#' @param quiet Logical. Suppress startup message.
-#' @param log Function or NULL. Optional request logger.
-#' @param static NULL or list. Static serving configuration(s).
-#' @param timeout_ms Polling timeout in milliseconds. Default is 100ms.
-#' @param num_threads Integer. Number of worker threads. Default is 50.
-#' @param max_body_size Number. Maximum request body size in bytes. Default is 8MiB.
-#' @param request_timeout_ms Integer. Socket receive timeout. Default is 30s.
+#' Launch a tinyVanR Application
+#'
+#' Configures and starts the civetwebR web server, sets up WebSocket routes,
+#' and handles initial HTML generation and static asset serving.
+#'
+#' @param app A \code{tinyvanr_app} object created via \code{tinyvanr_app()}.
+#' @param host Character. Bind address for the server. Default is "127.0.0.1".
+#' @param port Integer. Port to listen on. Default is 8080.
+#' @param quiet Logical. If TRUE, suppresses the startup notification.
+#' @param log Function or NULL. Optional request logging function.
+#' @param static List. Static directory configurations for the web server.
+#' @param timeout_ms Integer. Polling timeout in milliseconds.
+#' @param num_threads Integer. Number of worker threads.
+#' @param max_body_size Numeric. Maximum allowed request body size in bytes.
+#' @param request_timeout_ms Integer. Socket receive timeout in milliseconds.
+#' @param custom Logical. If TRUE, disables automatic injection of framework JS/CSS and index handler.
 #' @export
 run_app <- function(
   app,
@@ -20,60 +25,70 @@ run_app <- function(
   timeout_ms = 100L,
   num_threads = 50L,
   max_body_size = 8 * 1024 * 1024,
-  request_timeout_ms = 30000L
+  request_timeout_ms = 30000L,
+  custom = FALSE
 ) {
-
-  
-  sessions <- new.env(parent = emptyenv())
-
-  # Robust path resolution for static assets
-  tinyVanR_dir <- system.file("tinyVanR", package = "tinyVanR")
-  if (tinyVanR_dir == "") {
-    if (dir.exists("inst/tinyVanR")) {
-      tinyVanR_dir <- "inst/tinyVanR"
-    }
+  if (!inherits(app, "tinyvanr_app")) {
+    stop("The 'app' argument must be of class 'tinyvanr_app'.", call. = FALSE)
   }
 
-  # --- Dynamic HTML Generation ---
-  # Construct the full HTML document using vtag
-  # This replaces the static index.html file
-  html_doc <- vtag(
-    "html",
-    vtag(
-      "head",
-      vtag("title", app$title),
-      vtag("script", type = "text/javascript", src = "/tinyvanr/van-1.6.0.min.js"),
-      # Process custom CSS links
-      lapply(app$css, function(item) {
-        if (inherits(item, "tiny_ui")) return(item)
-        vtag("link", rel = "stylesheet", href = item)
-      }),
-      # Process custom head elements
-      app$head
-    ),
-    vtag(
-      "body",
-      vtag("div", id = "root"),
-      vtag("script", src = "/tinyvanr/client.js")
-    )
-  )
+  sessions <- new.env(parent = emptyenv())
 
-  # Register a GET handler for the root path to serve the dynamically generated HTML
-  civetwebR::handle("GET", "/", function(req) {
-    list(
-      status = 200L,
-      headers = list("Content-Type" = "text/html"),
-      body = as_html(html_doc)
-    )
-  })
+  # Initialize static assets list
+  all_static <- static
 
-  # Ensure our package's static assets are always served under /tinyvanr
-  all_static <- c(static, list(list(dir = tinyVanR_dir, prefix = "/tinyvanr")))
+  if (!custom) {
+    # --- Dynamic HTML Generation ---
+    html_doc <- vtag(
+      "html",
+      vtag(
+        "head",
+        app$head$before,
+        vtag("title", app$title),
+        vtag(
+          "script",
+          type = "text/javascript",
+          src = "/tinyvanr/van-1.6.0.min.js"
+        ),
+        app$head$after
+      ),
+      vtag(
+        "body",
+        app$body$before,
+        vtag("div", id = "root"),
+        vtag("script", src = "/tinyvanr/client.js"),
+        app$body$after
+      )
+    )
+
+    # Register default GET handler
+    civetwebR::handle("GET", "/", function(req) {
+      list(
+        status = 200L,
+        headers = list("Content-Type" = "text/html"),
+        body = as_html(html_doc)
+      )
+    })
+
+    # Robust path resolution for static assets
+    tinyVanR_dir <- system.file("tinyVanR", package = "tinyVanR")
+    if (tinyVanR_dir == "") {
+      if (dir.exists("inst/tinyVanR")) {
+        tinyVanR_dir <- "inst/tinyVanR"
+      }
+    }
+    
+    # Inject framework static assets
+    all_static <- c(
+      static,
+      list(list(dir = tinyVanR_dir, prefix = "/tinyvanr"))
+    )
+  }
 
   # Register Global WebSocket Handlers
   civetwebR::on_ws("open", function(req) {
     id <- as.character(req$id)
-    sessions[[id]] <- create_session(id, app$ui, app$server)
+    sessions[[id]] <- create_session(id, app$frontend, app$backend)
     message(sprintf("Session opened: %s", id))
   })
 

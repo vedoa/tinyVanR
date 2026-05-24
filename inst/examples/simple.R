@@ -2,7 +2,7 @@ source("../../R/framework.R")
 source("../../R/app.R")
 
 # Define UI entirely in R using the vtag DSL
-ui <- vtag(
+frontend_ui <- vtag(
   "div",
   vtag("h3", "R-Defined UI"),
   vtag("div", 
@@ -19,7 +19,7 @@ ui <- vtag(
 )
 
 #' A simple server-side application logic
-simple_server <- function(input, output, on) {
+simple_backend <- function(input, output, on) {
   slider_disabled <- FALSE
 
   # Set initial state
@@ -53,10 +53,15 @@ simple_server <- function(input, output, on) {
 }
 
 # Initialize and launch
-app <- tiny_app(
-  ui = ui,
-  server_func = simple_server,
+app <- tinyvanr_app(
+  frontend = frontend_ui,
+  backend = simple_backend,
   title = "My Dynamic R App",
-  css = list("https://cdn.jsdelivr.net/npm/water.css@2/out/water.css", "custom.css") # Example CSS
+  head = list(
+    after = list(
+      vtag("link", rel = "stylesheet", href = "https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"),
+      vtag("link", rel = "stylesheet", href = "custom.css")
+    )
+  )
 )
 run_app(app, port = 8080, timeout_ms = 20L) # Pass additional args to serve
