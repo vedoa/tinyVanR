@@ -1,20 +1,18 @@
+source("../../R/framework.R")
+source("../../R/app.R")
+
 # Define UI entirely in R
 ui <- vtag(
   "div",
-  children = list(
-    vtag("h3", children = list("R-Defined UI")),
-    vtag(
-      "div",
-      children = list(
-        "Adjust: ",
-        vtag("input", id = "slider_1", type = "range", min = 0, max = 100)
-      )
-    ),
-    vtag("div", id = "val_display"),
-    vtag("hr"),
-    vtag("button", id = "btn_toggle", children = list("Toggle Lock")),
-    vtag("div", id = "status_msg")
-  )
+  vtag("h3", "R-Defined UI"),
+  vtag("div", 
+    "Adjust: ",
+    vtag("input", id = "slider_1", type = "range", min = 0, max = 100)
+  ),
+  vtag("div", id = "val_display"),
+  vtag("hr"),
+  vtag("button", id = "btn_toggle", "Toggle Lock"),
+  vtag("div", id = "status_msg")
 )
 
 #' A simple server-side application logic

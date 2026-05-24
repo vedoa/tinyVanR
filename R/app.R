@@ -9,8 +9,9 @@ run_app <- function(app, host = "127.0.0.1", port = 8080) {
   # Robust path resolution for static assets
   tinyVanR_dir <- system.file("tinyVanR", package = "tinyVanR")
   if (tinyVanR_dir == "") {
-    if (dir.exists("inst/tinyVanR")) tinyVanR_dir <- "inst/tinyVanR"
-    else if (dir.exists("www")) tinyVanR_dir <- "www"
+    if (dir.exists("inst/tinyVanR")) {
+      tinyVanR_dir <- "inst/tinyVanR"
+    }
   }
 
   # Register Global WebSocket Handlers
@@ -37,7 +38,7 @@ run_app <- function(app, host = "127.0.0.1", port = 8080) {
   })
 
   message(sprintf("Running tinyVanR at http://%s:%d", host, port))
-  
+
   # Start the server
   civetwebR::serve(
     host = host,

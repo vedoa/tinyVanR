@@ -26,7 +26,7 @@ ws.onmessage = (e) => {
     } else if (cmd === "OUT") {
         const [_, id, type, val] = parts;
         const state = getOutputState(id);
-        
+
         // Handle Boolean strings from R
         let parsedVal = val;
         if (val === "TRUE") parsedVal = true;
@@ -45,21 +45,21 @@ ws.onmessage = (e) => {
 // Generic Managed Component Wrapper
 const Bind = (id, tagName, tagFunc, props = {}, ...children) => {
     const state = getOutputState(id);
-    
+
     // Determine value type and event listener based on tag and props
     const isButton = tagName === "button";
     const isSelect = tagName === "select";
     const isCheckable = props.type === "checkbox" || props.type === "radio";
-    
+
     // Map HTML behavior to our internal protocol types
     const eventType = isButton ? "onclick" : (isSelect || isCheckable ? "onchange" : "oninput");
-    const valType = isButton ? "click" : (isCheckable ? "bool" : 
-                   (props.type === "number" || props.type === "range" ? "num" : "str"));
+    const valType = isButton ? "click" : (isCheckable ? "bool" :
+        (props.type === "number" || props.type === "range" ? "num" : "str"));
 
     const handler = (e) => {
         const val = isButton ? "1" : (isCheckable ? e.target.checked : e.target.value);
         sendInput(id, valType, val);
-        if (typeof props[eventType] === "function") propseventType;
+        if (typeof props[eventType] === "function") props[eventType](e);
     };
 
     const extendedProps = {
@@ -67,13 +67,12 @@ const Bind = (id, tagName, tagFunc, props = {}, ...children) => {
         [eventType]: handler
     };
 
-    // Reactive properties from server
-    const reactiveAttrs = ["disabled", "style", "className", "min", "max", "value"];
+    // Reactive properties from server - only bind standard attributes
+    const reactiveAttrs = ["disabled", "style", "class", "min", "max", "value", "checked", "type", "placeholder"];
     reactiveAttrs.forEach(attr => {
-        const propKey = attr === "className" ? "class" : attr;
         extendedProps[attr] = () => {
-            const val = state.val.props[propKey] ?? props[attr];
-            return val === undefined ? null : val;
+            const val = state.val.props[attr] ?? props[attr];
+            return val === undefined ? undefined : val;
         };
     });
 
@@ -84,10 +83,15 @@ const Bind = (id, tagName, tagFunc, props = {}, ...children) => {
 const renderNode = (node) => {
     if (typeof node === 'string') return node;
     if (Array.isArray(node)) return node.map(renderNode);
-    
+
     const tagFunc = van.tags[node.tag];
-    const children = node.children ? renderNode(node.children) : [];
+    let children = node.children ? renderNode(node.children) : [];
     
+    // Ensure children is always an array for the spread operator
+    if (!Array.isArray(children)) {
+        children = [children];
+    }
+
     if (node.id) return Bind(node.id, node.tag, tagFunc, node.props, ...children);
     return tagFunc(node.props, ...children);
 };
