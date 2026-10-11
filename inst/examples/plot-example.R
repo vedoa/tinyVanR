@@ -29,7 +29,7 @@ frontend_ui <- van$div(
   ),
   van$div(id = "bin_counter", style = "font-weight: bold; margin: 10px 0;"),
   van$br(),
-  # The img tag will receive the Base64 data in its 'src' property
+  # The image URL is updated to point at a generated PNG in the static route.
   van$img(
     id = "plot_output",
     style = "width: 100%; max-width: 600px; height: auto; border: 1px solid #ddd; background: #fff;"
@@ -40,13 +40,16 @@ frontend_ui <- van$div(
 plot_backend <- function(input, output, on) {
   # Generate a unique filename prefix for this session to avoid collisions
   session_prefix <- paste0(sample(c(letters, 0:9), 8), collapse = "")
+  render_count <- 0L
 
   render_histogram <- function(bin_count) {
+    render_count <<- render_count + 1L
     # Update the text readout
     output$set("bin_counter", paste("Selected Bins:", bin_count))
 
-    # 1. Save plot to the served static directory
-    plot_filename <- sprintf("hist_%s.png", session_prefix)
+    # Use a new file per render so requests never read a PNG while it is being
+    # overwritten (which is especially important on Windows).
+    plot_filename <- sprintf("hist_%s_%04d.png", session_prefix, render_count)
     plot_path <- file.path(plot_dir, plot_filename)
 
     png(plot_path, width = 800, height = 500, res = 120)
@@ -61,12 +64,11 @@ plot_backend <- function(input, output, on) {
     )
     dev.off()
 
-    # 2. Push the URL to the frontend.
-    # We add a timestamp (?t=...) to force the browser to bypass the cache.
+    # 2. Push the unique URL to the frontend; the unique filename bypasses cache.
     output$set_prop(
       "plot_output",
       "src",
-      sprintf("/plots/%s?t=%f", plot_filename, as.numeric(Sys.time()))
+      sprintf("/plots/%s", plot_filename)
     )
   }
 

@@ -66,4 +66,4 @@ app <- tinyvanr_app(
     )
   )
 )
-run_app(app, port = 8080, timeout_ms = 20L) # Pass additional args to serve
+run_app(app, port = 8080)

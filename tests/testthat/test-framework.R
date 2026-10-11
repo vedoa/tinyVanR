@@ -1,7 +1,7 @@
 test_that("vtag creates correct structure", {
   t <- vtag("div", class = "container", van$p("hello"), id = "test-id")
 
-  expect_s3_class(t, "tiny_ui")
+  expect_s3_class(t, "tinyvanr_ui")
   expect_equal(t$tag, "div")
   expect_equal(t$id, "test-id")
   expect_equal(t$props$class, "container")

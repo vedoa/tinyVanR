@@ -7,8 +7,29 @@ const getOutputState = (id) => {
     return outputs.val[id];
 };
 
+const setElementProp = (id, propName, value) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    if (value === undefined || value === null) {
+        element.removeAttribute(propName);
+    } else if (propName === "class") {
+        element.className = String(value);
+    } else if (propName === "style") {
+        element.style.cssText = String(value);
+    } else if (propName in element) {
+        element[propName] = value;
+    } else {
+        element.setAttribute(propName, String(value));
+    }
+};
 // WebSocket Management
-const ws = new WebSocket(`ws://${window.location.host}/ws`);
+const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+// run_app() binds to IPv4 loopback by default; avoid localhost resolving to ::1.
+const wsHost = window.location.hostname === "localhost"
+    ? `127.0.0.1${window.location.port ? `:${window.location.port}` : ""}`
+    : window.location.host;
+const ws = new WebSocket(`${wsProtocol}//${wsHost}/ws`);
 const sendInput = (id, type, val) => {
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(`IN\t${id}\t${type}\t${val}`);
@@ -42,6 +63,7 @@ ws.onmessage = (e) => {
         else if (type.startsWith("prop:")) {
             const propName = type.split(":")[1];
             state.val = { ...state.val, props: { ...state.val.props, [propName]: parsedVal } };
+            setElementProp(id, propName, parsedVal);
         }
     } else if (cmd === "ERR") {
         console.error("tinyVanR Server Error:", val);
@@ -70,24 +92,19 @@ const Bind = (id, tagName, tagFunc, props = {}, ...children) => {
 
     const extendedProps = {
         ...props,
+        id,
         [eventType]: handler
     };
 
-    // Selective binding: Only bind attributes that are relevant to the tag or present in props.
-    // This avoids polluting DOM elements with irrelevant "undefined" attributes.
+    // Bind only attributes with an initial or server-provided value. Binding an
+    // absent `src` as undefined makes browsers request the literal `/undefined`.
     const reactiveAttrs = ["disabled", "style", "class", "min", "max", "value", "checked", "placeholder", "src", "href"];
-    const isMedia = ["img", "iframe", "video", "audio", "source"].includes(tagName);
-    const isInput = ["input", "select", "textarea", "button", "option"].includes(tagName);
-    const isLink = ["a", "area", "link"].includes(tagName);
 
     reactiveAttrs.forEach(attr => {
-        const isInitial = props[attr] !== undefined;
-        const isGlobal = ["style", "class"].includes(attr);
-        const isRelevant = (isMedia && attr === "src") || 
-                           (isInput && ["value", "checked", "disabled", "min", "max", "placeholder"].includes(attr)) ||
-                           (isLink && ["href", "target"].includes(attr));
+        const hasInitialValue = props[attr] !== undefined;
+        const hasServerValue = Object.prototype.hasOwnProperty.call(state.val.props, attr);
 
-        if (isInitial || isGlobal || isRelevant) {
+        if (hasInitialValue || hasServerValue) {
             extendedProps[attr] = () => {
                 const val = state.val.props[attr] ?? props[attr];
                 // Returning undefined tells VanJS to omit the attribute entirely

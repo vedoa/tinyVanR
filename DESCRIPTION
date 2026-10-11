@@ -1,21 +1,21 @@
 Package: tinyVanR
 Type: Package
-Title: A Lightweight, Reactive Web Framework for R powered by CivetWeb
+Title: A Lightweight, Reactive Web Framework for R powered by Nanonext
 Version: 0.0.1
 Authors@R: 
     person("Vedo", "Alagic", email = "vedo.alagic@outlook.com", role = c("aut", "cre"))
-Description: An R interface to the CivetWeb embedded C web server designed for 
+Description: An R interface to the Nanonext NNG-based web server designed for 
     building lightweight, reactive web applications. It facilitates
     communication between R and frontend frameworks like VanJS, supporting 
     static file serving and dynamic JSON request handling.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-NeedsCompilation: yes
+NeedsCompilation: no
 Config/roxygen2/version: 8.0.0
 RoxygenNote: 8.0.0
 Imports:
-    civetwebR,
+    nanonext (>= 1.8.2)
 Suggests: 
     testthat (>= 3.0.0),
     callr,

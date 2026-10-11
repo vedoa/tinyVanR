@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Directory listing</title>
+  <style>{{styles}}</style>
+</head>
+<body>
+  <main class="listing-shell">
+    <h1 class="listing-title">Index of {{breadcrumb}}</h1>
+    <section class="listing-table" aria-label="Directory contents">
+      <div class="listing-header">
+        <button class="listing-name sortbtn" data-sort="name" type="button">Name</button>
+        <button class="listing-size sortbtn" data-sort="size" type="button">Size</button>
+        <button class="listing-time sortbtn" data-sort="mtime" type="button">Modified</button>
+      </div>
+      <div id="listing">{{files}}</div>
+    </section>
+  </main>
+  <script>{{script}}</script>
+</body>
+</html>
